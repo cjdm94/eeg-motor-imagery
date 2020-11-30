@@ -55,3 +55,39 @@ We can use Morlet wavelets (other methods can be used) to see a time-frequency a
 We simply average across trials to get the evoked repsonses from epochs.
 
 ## classification.py
+
+This script classifies whether subject has imagined moving their left or right arm.
+
+## Filtering the data
+
+We can easily filter the data between 7 and 30 Hz, which corresponds roughly to the frequencies expected during motor imagery (mu/alpha rhythms and beta rhythms).
+
+You can play around with the exact numbers to maximise the classification accuracy.
+
+## Constructing the epochs
+
+We don't want to train on the whole time segment, because we know from experience that the motor imagery signal (event-related desynchronisation) is strongest shortly after the participant starts imaginging movement. Therefore, we crop the epochs to between 100ms and 200s after the motor imagery. We will then analyse the performance of the classifier over the entire segment, and we should expect maximal performance during this window.
+
+## Cross validation of the classifier
+
+Before we construct a classifier, we should follow proper machine learning protocol. Typically in machine learning you have a training dataset and a test dataset; the classifier will characterise one dataset, and then we must train it to classify datasets it hasn't yet seen.
+
+To make optimal use of our limited number of trials (80-90), we will split our epochs into 10 groups, using the ShuffleSplit function. This function will use 9 groups as training data and test on the remaining group.
+
+## Feature extraction
+
+We use the common spatial patterns algorithm for feature extraction. The CSP algorithm is a sptial filter which takes the 64 EEG channels and weights them according to point at a source which shows a maximal power difference between the two conditions. When we run it, it should point at the left and right motor cortex because those will show the event-related desynchronisation that will tell us whether the left or right hand was imagined as moving. Instead of 64 EEG channels, we will use 4 "virtual" channels pointing to the motor cortex. We will therefore extract 4 features from the 64 channels, and we can visualise this topographically.
+
+<img src=./img/extracted-features.png height="200px">
+
+These are the weights given to each channel to construct the features/components. In the first component the left pre-motor area is lit up, and the third component focuses in on a source in the right pre-motor area. The 2nd and 4th components seem not to be very informative, but we keep them anyway - it is common practice to use 4 components for feature selection via CSP.
+
+In summary, the 1st and 3rd components will probably tell our classifier whether the test data is left or right motor imagery.
+
+## Classifier
+
+We use a linear discriminant analysis as the classifier. We run the classifier on different windows of time surrounding the moment of motor imagery (this is what the loop is doing). This will show us the performance of the classifier over the course of the trials.
+
+<img src=./img/classification-results.png height="200px">
+
+We can see that between 1 and 1.5s the classifier was able to decode whether it was left or right-hand motor imagery with around 80-90% accuracy.
